@@ -102,3 +102,15 @@ namespace Task3
         }
     }
 }
+
+
+//  Why is it better to use a List instead of an Array (string[]) for this specific project ?
+//  For todo  list tasks are added and removed constantly so sized is unknown, list is to go datastructure  
+//  Because tasks are to be added and removed and we dont know how many tasks will be added 
+//  Array has fixed size and List has dynamic size, In array we have to keep pointer to track 
+//  Array size to add new items, while List grows automatically
+//  Deleting an element in an array require shifting of lements while
+//  List does it automatically for us
+
+
+
