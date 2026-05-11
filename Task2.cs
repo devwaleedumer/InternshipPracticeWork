@@ -42,3 +42,16 @@ do
 while (!isGuessed);
 
 Console.WriteLine($"{secretNo} guessed in {validAttempts} attempts.");
+
+
+//Q: In your last task, you looked at int.Parse(). Now, explain: What is the out keyword used for in int.TryParse(input, out result)?
+//(Why can't we just say int result = int.TryParse(input);?)
+
+//int.TryParse() needs to return two things:
+
+//1) A boolean value indicating whether the parsing was successful or not.
+//2) The parsed integer value if the parsing was successful.
+
+// In C# , a method can only return one value directly.
+// To return multiple values,
+// we can use the out keyword to allow the method to output additional values through parameters.
