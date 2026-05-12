@@ -1,10 +1,12 @@
-﻿using System;
+﻿using InventoryManagementSystem;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Task3
 {
-    class Program
+    class Task3
     {
 
 
@@ -12,50 +14,41 @@ namespace Task3
         {
             List<string> tasksList = [];
             bool isRunning = true;
+            Console.WriteLine("\n*****Task Tracker*****\n");
             do
             {
-                Console.WriteLine("\n*****Task Tracker*****\n");
                 Console.WriteLine("\n Press 1 to add task " + "\n Press 2 to view tasks" + "\n Press 3 to remove tasks" + "\n Press 4 to exit");
-                int input;
-
-                if (int.TryParse(Console.ReadLine(), out input))
+                int choice = ReadChoice();
+                switch (choice)
                 {
-                    switch (input)
-                    {
-                        case 1:
-                            AddTask(tasksList);
-                            break;
-                        case 2:
-                            ViewTasks(tasksList);
-                            break;
-                        case 3:
-                            RemoveTask(tasksList);
-                            break;
-                        case 4:
-                            isRunning = false;
-                            break;
-                        default:
-                            Console.WriteLine("Please Enter Valid No.");
-                            break;
-                    }
+                    case 1:
+                        AddTask(tasksList);
+                        break;
+                    case 2:
+                        ViewTasks(tasksList);
+                        break;
+                    case 3:
+                        RemoveTask(tasksList);
+                        break;
+                    case 4:
+                        isRunning = false;
+                        break;
+                    default:
+                        Console.WriteLine("Please Enter Valid No.\n");
+                        break;
                 }
-                else
-                {
-                    Console.WriteLine("Only Digits are alowed");
-                }    
-
             }
             while (isRunning);
 
 
 
-         
+
             static void AddTask(List<string> tasks)
             {
                 string? task;
                 do
                 {
-                    Console.WriteLine("Enter a task to add:");
+                    Console.Write("Enter a task to add: ");
                     task = Console.ReadLine();
 
                     if (string.IsNullOrEmpty(task))
@@ -69,6 +62,7 @@ namespace Task3
 
             static void ViewTasks(List<string> tasks)
             {
+                Console.WriteLine("\nYour Tasks:");
                 if (tasks.Count == 0)
                 {
                     Console.WriteLine("No tasks yet.\n");
@@ -100,17 +94,47 @@ namespace Task3
                 Console.WriteLine("Task removed successfully.\n");
             }
         }
+
+        private static int ReadChoice()
+        {
+            if (int.TryParse(Console.ReadLine(), out int input))
+            {
+                return input;
+            }
+            else
+            {
+                Console.WriteLine("Only Digits are alowed");
+                return -1;
+            }
+        }
     }
 }
 
+//Self - Study & Research
+//Before you start coding, research these concepts:
 
-//  Why is it better to use a List instead of an Array (string[]) for this specific project ?
-//  For todo  list tasks are added and removed constantly so sized is unknown, list is to go datastructure  
-//  Because tasks are to be added and removed and we dont know how many tasks will be added 
-//  Array has fixed size and List has dynamic size, In array we have to keep pointer to track 
-//  Array size to add new items, while List grows automatically
-//  Deleting an element in an array require shifting of lements while
-//  List does it automatically for us
+//Arrays vs. Lists: What is the main difference between an Array and a List in C#?
+//A) Arrays have a fixed size, while Lists can grow and shrink dynamically.
+//B) Arrays can only store primitive types, while Lists can store any type of object.
+//C) Arrays are part of the System.Collections namespace, while Lists are part of the System.Collections.Generic namespace.
+//D) Arrays are faster than Lists for all operations, while Lists are slower.
+
+//Methods: How do you pass parameters into a method? What does the static keyword mean here?
+//A) You can pass parameters into a method by including them in the method's parentheses.
+//The static keyword means that the method belongs to the class itself rather than an instance of the class,
+//allowing you to call it without creating an object of the class.
 
 
+//Zero-based Indexing: Lists start at 0. How do you show the user "Task #1" while the code identifies it as index 0?
+//A) You can display the task number to the user by adding 1 to the index when showing it.
+//For example, if you have a task at index 0, you would display it as "Task #1" by using (index + 1) in your output.
 
+
+//Research Question (Include in your PR)
+//Why is it better to use a List instead of an Array (string[]) for this specific project ?
+//A) Using a List is better for this project because it allows for dynamic resizing,
+//which means you can easily add or remove tasks without worrying about the underlying data structure.
+//With an Array, you would need to create a new array and copy the existing tasks every time you want to add or remove a task,
+//which can be inefficient and cumbersome. Lists also provide built-in methods
+//for adding, removing, and managing items, making it more convenient for this type of application.
+//
