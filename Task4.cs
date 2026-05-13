@@ -1,17 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿
 
 namespace InventoryManagementSystem
 {
     internal class Program
     {
+
+        public static int ProductIdPointer { get; set; }
+
         static async Task Main(string[] args)
         {
-            
+            bool isRunning = true;
             var products = GetAllProducts();
-           
+
+            ProductIdPointer = products.Max(p => p.Id);
+            // show User Menu List
+            do
+            {
+                ShowMenu();
+
+                // Read User Choice
+                int choice = ReadInt("Enter Your Choice");
+                switch (choice)
+                {
+                    case 1:
+                        ShowProducts(products);
+                        break;
+                    case 2:
+                        SearchProducts(products);
+                        break;
+                    case 3:
+                        await AddProduct(products);
+                        break;
+                    case 4:
+                        UpdateProduct(products);
+                        break;
+                    case 5:
+                        RemoveProduct(products);
+                        break;
+
+                    case 6:
+                        isRunning = false;
+                        break;
+                    default:
+                        ShowError("Please Enter Valid Choice");
+                        break;
+                }
+            } while (isRunning);
+
             DisplaySection("All Products Sorted by Price (High to Low)");
 
             var sortedProducts = products
@@ -30,7 +65,7 @@ namespace InventoryManagementSystem
 
             ShowProducts(filteredProducts);
 
-            
+
             DisplaySection("Search Product");
 
             var searchedProduct = products
@@ -48,7 +83,7 @@ namespace InventoryManagementSystem
 
             Console.WriteLine($"Total Inventory Value: {totalValue:C}");
 
-            // Save Inventory
+            //Save Inventory
             await SaveInventoryAsync(products.Count);
 
             Console.ReadKey();
@@ -61,15 +96,228 @@ namespace InventoryManagementSystem
             Console.WriteLine($"{count} Items saved successfully");
         }
 
-        static void ShowProducts(IEnumerable<Product> products)
+        static void ShowProducts(List<Product> products)
         {
-            foreach (var product in products)
+            DisplaySection("All Products");
+            products.ForEach(p => Console.WriteLine(FormatProduct(p)));
+        }
+
+        static void SearchProducts(List<Product> products)
+        {
+            DisplaySection("Search Product");
+            string searchTerm = ReadText("Enter product name to search");
+            if (products.Count == 0)
             {
-                Console.WriteLine(FormatProduct(product));
+                Console.WriteLine("No products to search.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(searchTerm))
+            {
+                Console.WriteLine($"Please Enter valid term to search.");
+                return;
+            }
+
+            var searchedProduct = products
+            .FirstOrDefault(p => p.Name.Contains(searchTerm));
+
+            Console.WriteLine(
+                searchedProduct is not null
+                    ? FormatProduct(searchedProduct)
+                    : "Product not found.");
+        }
+
+        async static Task AddProduct(List<Product> products)
+        {
+            Product newProduct = InputAndValidateProduct();
+            newProduct.Id = ++ProductIdPointer;
+            products.Add(newProduct);
+            ShowSuccess($"Product '{newProduct.Name}' added successfully.");
+
+            await SaveInventoryAsync(products.Count);
+        }
+
+        private static Product InputAndValidateProduct()
+        {
+            string? name = null;
+            decimal priceInput = 0;
+            int stockInput = 0;
+            Product? newProduct = null;
+
+
+            while (true)
+            {
+                name ??= ReadText("Enter product name");
+
+                if (priceInput <= 0)
+                    priceInput = ReadDecimal("Enter product Price");
+
+                if (stockInput <= 0)
+                    stockInput = ReadInt("Enter product stock");
+
+                newProduct = new Product(name, priceInput, stockInput);
+
+                var errors = ValidateProduct(newProduct).ToList();
+
+                if (errors.Count != 0)
+                {
+                    PrintErrors(errors);
+                    Console.WriteLine();
+                    continue;
+                }
+
+                break;
+            }
+
+            return newProduct;
+        }
+
+        private static Product InputAndValidateProductForUpdate(Product defaultProduct)
+        {
+
+            string? name = null;
+            decimal priceInput = 0;
+            int stockInput = 0;
+            Product? newProduct = null;
+
+            while (true)
+            {
+                name = ReadText("Enter product name", validate: false);
+
+
+                priceInput = ReadDecimal("Enter product Price", validation: false);
+
+                stockInput = ReadInt("Enter product stock", Validation: false);
+
+                newProduct = new Product(string.IsNullOrEmpty(name) ? defaultProduct.Name : name,
+                                        priceInput <= 0 ? defaultProduct.Price : priceInput,
+                                        stockInput <= 0 ? defaultProduct.Stock : stockInput);
+
+                var errors = ValidateUpdateProduct(newProduct).ToList();
+
+                if (errors.Count != 0)
+                {
+                    PrintErrors(errors);
+                    Console.WriteLine();
+                    continue;
+                }
+
+                break;
+            }
+
+            return newProduct;
+        }
+
+        private static decimal ReadDecimal(string text, bool validation = true)
+        {
+            decimal result = 0;
+            while (true)
+            {
+                Console.Write($"{text}: ");
+                string? input = Console.ReadLine();
+
+                if (validation)
+                {
+                    if (decimal.TryParse(input, out result))
+                        return result;
+                    else
+                        ShowError($"{input} is not a valid decimal number.");
+
+                }
+                return result;
+
             }
         }
 
-        static string FormatProduct(Product p) => $"{p.Id,-3} Product: {p.Name,-30} " +  $"Price: {p.Price,8:C} " + $"Stock: {p.Stock,5}";
+
+        static
+
+        void UpdateProduct(List<Product> products)
+        {
+            DisplaySection("Update Product");
+
+            var productToUpdate = FindProductByIdInputId(products);
+
+            var updatedProduct = InputAndValidateProductForUpdate(productToUpdate);
+            var errors = ValidateUpdateProduct(updatedProduct).ToList();
+            if (errors.Count != 0)
+            {
+                PrintErrors(errors);
+                return;
+            }
+
+            productToUpdate.Name = updatedProduct.Name;
+            productToUpdate.Price = updatedProduct.Price;
+            productToUpdate.Stock = updatedProduct.Stock;
+
+
+            ShowSuccess($"Product with Id {updatedProduct.Id} updated successfully.");
+        }
+
+        static void RemoveProduct(List<Product> products)
+        {
+            var productToRemove = FindProductByIdInputId(products);
+            products.Remove(productToRemove);
+            ShowSuccess($"Product {productToRemove.Name} with Id {productToRemove.Id} removed successfully.");
+
+        }
+
+        private static Product FindProductByIdInputId(List<Product> products)
+        {
+            int id;
+            Product? product;
+            while (true)
+            {
+                id = ReadInt("Enter product Id");
+                if (id <= 0 || id > ProductIdPointer)
+                {
+                    ShowError($"Invalid  Product Id {id}");
+                    continue;
+                }
+                product = products.FirstOrDefault(p => p.Id == id);
+                if (product is null)
+                {
+                    ShowError($"Product with Id {id} doesn't exists");
+                    continue;
+                }
+                break;
+            }
+            return product;
+        }
+        static IEnumerable<string> ValidateProduct(Product product)
+        {
+            if (product is null)
+            {
+                yield return "Product cannot be null.";
+                yield break;
+            }
+            if (string.IsNullOrEmpty(product.Name))
+                yield return "Product name cannot be empty.";
+            if (product.Price < 0)
+                yield return "Product price cannot be negative.";
+            if (product.Stock < 0)
+                yield return "Product stock cannot be negative.";
+        }
+
+        static IEnumerable<string> ValidateUpdateProduct(Product product)
+        {
+            if (product is null)
+            {
+                yield return "Product cannot be null.";
+                yield break;
+            }
+            if (string.IsNullOrEmpty(product.Name))
+                yield return "Product name cannot be empty.";
+            if (product.Price < 0)
+                yield return "Product price cannot be negative.";
+            if (product.Stock < 0)
+                yield return "Product stock cannot be negative.";
+        }
+
+        static string FormatProduct(Product p) =>
+            $"{p.Id,-3} Product: {p.Name,-30} " +
+            $"Price: {p.Price,8:C} " +
+            $"Stock: {p.Stock,5}";
 
         static void DisplaySection(string title)
         {
@@ -104,27 +352,124 @@ namespace InventoryManagementSystem
                 new Product(17, "Standing Desk",         549.99m, 1),
             };
 
-    }
 
-    public class Product
-    {
-        public int Id { get; set; }
-
-        public string Name { get; set; }
-
-        public decimal Price { get; set; }
-
-        public int Stock { get; set; }
-
-        public Product(int id, string name, decimal price, int stock)
+        static void ShowMenu()
         {
-            Id = id;
-            Name = name;
-            Price = price;
-            Stock = stock;
+            DisplaySection("Inventory Management System");
+            Console.WriteLine();
+            Console.WriteLine("Please select an option:");
+            Console.WriteLine(" 1. View All Products");
+            Console.WriteLine(" 2. Search Product");
+            Console.WriteLine(" 3. Add Product");
+            Console.WriteLine(" 4. Update Product");
+            Console.WriteLine(" 5. Remove Product");
+            Console.WriteLine(" 6. Exit");
+
+            Console.WriteLine();
+
+
+        }
+
+        // Helpers 
+        static void PrintErrors(IEnumerable<string> errors)
+        {
+            foreach (var error in errors)
+            {
+                ShowError(error);
+            }
+
+            Console.WriteLine();
+        }
+
+        static string ReadText(string text, bool validate = true)
+        {
+            string? input;
+            while (true)
+            {
+                Console.Write($"{text}: ");
+                input = Console.ReadLine()?.Trim();
+
+                if (validate)
+                {
+                    if (!string.IsNullOrEmpty(input))
+                        return input;
+                    else
+                        ShowError("Invalid input please try again");
+                }
+                else
+                {
+                    return input ?? string.Empty;
+                }
+
+            }
+        }
+
+
+        static int ReadInt(string text, bool Validation = true)
+        {
+            int result = 0;
+            while (true)
+            {
+                Console.Write($"{text}: ");
+                string? input = Console.ReadLine();
+
+                if (Validation)
+                {
+                    if (int.TryParse(input, out result))
+                        return result;
+                    else
+                        ShowError($"{input} is not whole number. Please Try Agin");
+                }
+                else
+                {
+                    return result;
+                }
+            }
+        }
+
+        private static void ShowError(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine(message);
+            Console.ResetColor();
+        }
+
+        private static void ShowSuccess(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(message);
+            Console.ResetColor();
+        }
+
+
+        public class Product
+        {
+            public int Id { get; set; }
+
+            public string Name { get; set; }
+
+            public decimal Price { get; set; }
+
+            public int Stock { get; set; }
+
+            public Product(int id, string name, decimal price, int stock)
+            {
+                Id = id;
+                Name = name;
+                Price = price;
+                Stock = stock;
+            }
+
+            public Product(string name, decimal price, int stock)
+            {
+                Name = name;
+                Price = price;
+                Stock = stock;
+            }
         }
     }
 }
+
 
 
 //Q1) - Lambda Expressions: What is the p => p.Name syntax and how does it work with LINQ?
